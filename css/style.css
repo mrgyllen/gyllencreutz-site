@@ -1,0 +1,125 @@
+/* Gyllencreutz Family Heritage - Stylesheet */
+
+/* --- Variables & Base Styles --- */
+:root {
+    --gold: #b8860b;      /* A rich, antique gold */
+    --red: #a02c2c;        /* A deep, heritage red */
+    --bg-color: #fdfaf4;    /* A warmer, parchment-like white */
+    --dark-text: #4a3a2a;   /* A dark, warm brown for text */
+    --border-color: #e6e2d8;/* A soft, light-tan border */
+    --font-heading: 'Cormorant Garamond', serif;
+    --font-body: 'Lora', serif;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-body);
+    background-color: var(--bg-color);
+    background-image: url('../img/parchment-texture.png');
+    color: var(--dark-text);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+/* --- Typography --- */
+h1, h2 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    text-align: center;
+    color: var(--red);
+}
+
+h1 {
+    font-size: 3.5rem;
+    margin: 0.5em 0 0.2em;
+    letter-spacing: 2px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1em;
+    padding-bottom: 0.5em;
+    border-bottom: 1px solid var(--gold);
+    display: inline-block;
+    font-variant: small-caps;
+    letter-spacing: 1.5px;
+}
+
+/* --- Layout & Sections --- */
+.hero {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;
+    padding: 2em;
+    text-align: center;
+}
+
+.hero-content {
+    max-width: 800px;
+}
+
+.crest {
+    max-width: 250px;
+    height: auto;
+    margin-bottom: 1.5em;
+}
+
+.tagline {
+    font-size: 1.2rem;
+    font-style: italic;
+    color: var(--gold);
+    margin-top: 0;
+}
+
+.content-section {
+    padding: 4em 2em;
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.bg-light {
+    background-color: #fff;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* --- Footer --- */
+footer {
+    text-align: center;
+    padding: 2em 0;
+    margin-top: 2em;
+    font-size: 0.9em;
+    color: #8c7d6b; /* Softer, tan-gray color */
+    border-top: 1px solid var(--border-color);
+}
+
+/* --- Responsive Design --- */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2.5rem;
+    }
+
+    h2 {
+        font-size: 2rem;
+    }
+
+    .hero {
+        min-height: 60vh;
+    }
+
+    .crest {
+        max-width: 120px;
+    }
+
+    .content-section {
+        padding: 3em 1em;
+    }
+}
