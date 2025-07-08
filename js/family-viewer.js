@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const nodeWidth = 180;
     const nodeHeight = 60;
-    const treemap = d3.tree();
+    const treemap = d3.tree()
+        .nodeSize([nodeHeight + 20, 0]); // [height, width] - 20px vertical padding
 
     let i = 0;
     let root;
@@ -82,11 +83,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function update(source, isInitial = false) {
-        // Set a temporary size to get an initial layout.
-        // The height will be adjusted dynamically based on content.
-        treemap.size([height, width]);
-        const initialLayout = treemap(root);
-        let nodes = initialLayout.descendants();
+        const layout = treemap(root);
+        let nodes = layout.descendants();
+        let links = layout.links();
 
         // Calculate the actual vertical extent of the tree.
         let minX = Infinity;
@@ -96,18 +95,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (d.x > maxX) maxX = d.x;
         });
 
+        // Set the SVG height based on the calculated extent.
         const dynamicHeight = maxX - minX;
-
-        // Set the final SVG height and update the treemap size.
         const finalHeight = Math.max(dynamicHeight, height);
-        currentHeight = finalHeight; // Update the height for centering calculations
+        currentHeight = finalHeight;
         svg.attr('height', finalHeight + margin.top + margin.bottom);
-        treemap.size([finalHeight, width]);
-
-        // Re-run the layout with the final size to get correct node positions.
-        const finalLayout = treemap(root);
-        nodes = finalLayout.descendants();
-        let links = finalLayout.links();
 
         // Normalize for fixed-depth BEFORE calculating any transforms.
         nodes.forEach(d => { d.y = d.depth * (nodeWidth + 120); });
