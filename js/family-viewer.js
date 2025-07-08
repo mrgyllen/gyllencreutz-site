@@ -130,7 +130,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .data(nodes, d => d.id || (d.id = ++i));
 
         const nodeEnter = nodeSelection.enter().append('g')
-            .attr('class', 'node')
             .attr('transform', `translate(${source.y0},${source.x0})`)
             .on('click', (event, d) => {
                 // If the clicked node has children, expand/collapse them and redraw
@@ -149,25 +148,14 @@ document.addEventListener('DOMContentLoaded', function() {
             .attr('height', 1e-6)
             .attr('x', -nodeWidth / 2)
             .attr('y', -nodeHeight / 2)
-            .attr('rx', 10)
-            .style('fill', d => d.depth % 2 === 0 ? '#f1f5f9' : '#e2e8f0');
+            .attr('rx', 10);
 
-        // Create the main text element.
-        const text = nodeEnter.append('text')
-            .attr('class', 'node-name node-text-base') // Shared class for easy selection
+        // Create a single text element for the node name.
+        nodeEnter.append('text')
+            .attr('class', 'node-name')
             .attr('dy', '0.31em')
             .attr('x', 0)
             .attr('text-anchor', 'middle');
-
-        // Clone it for the stroke, and add a specific class for styling.
-        text.clone(true).lower()
-            .attr('class', 'node-name-stroke node-text-base')
-            .attr('stroke-linejoin', 'round')
-            .attr('stroke-width', 3)
-            .attr('stroke', 'white');
-
-        // Now, wrap both the original and the clone.
-        nodeEnter.selectAll('.node-text-base').call(wrapText, nodeWidth - 20);
 
         const indicator = nodeEnter.append('g')
             .attr('class', 'expand-indicator')
@@ -185,6 +173,9 @@ document.addEventListener('DOMContentLoaded', function() {
             .style('font-weight', 'bold');
 
         const nodeUpdate = nodeEnter.merge(nodeSelection);
+
+        // Set a consistent class for all nodes.
+        nodeUpdate.attr('class', 'node');
 
         nodeUpdate.transition().duration(duration)
             .attr('transform', d => `translate(${d.y},${d.x})`);
@@ -206,8 +197,9 @@ document.addEventListener('DOMContentLoaded', function() {
             .text(d => d._children ? '+' : '-')
             .style('fill', d => d._children ? 'white' : 'var(--primary-color)');
 
-        // On update, re-wrap both the text and its stroke to ensure they stay in sync.
-        nodeUpdate.selectAll('.node-text-base').call(wrapText, nodeWidth - 20);
+        // On update, call wrapText on the single text element.
+        nodeUpdate.select('.node-name')
+            .call(wrapText, nodeWidth - 20);
 
         const nodeExit = nodeSelection.exit().transition().duration(duration)
             .attr('transform', `translate(${source.y},${source.x})`)
@@ -359,18 +351,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function wrapText(selection, width) {
         selection.each(function(d) { // Use the data object 'd' passed by D3
             const text = d3.select(this);
-            // Always source the text from the data object 'd'
+            // Always source the text from the data object 'd', not the DOM element
             const name = d.data.name.split('\n')[0].split(',')[0];
             const words = name.split(/\s+/).reverse();
             let word;
             let line = [];
             let lineNumber = 0;
             const lineHeight = 1.1; // ems
-            const y = text.attr("y");
-            const dy = parseFloat(text.attr("dy"));
+            const y = text.attr("y") || 0;
+            const dy = parseFloat(text.attr("dy")) || 0;
 
-            // This is the critical part: always clear existing tspans before re-wrapping.
+            // This is the critical fix: clear all content (tspans and text nodes) before re-wrapping.
             text.text(null);
+
             let tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
 
             while (word = words.pop()) {
@@ -380,12 +373,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     line.pop();
                     tspan.text(line.join(" "));
                     line = [word];
-                    tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+                    tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", `${++lineNumber * lineHeight + dy}em`).text(word);
                 }
             }
+
             // Center the text block vertically
-            const textBlockHeight = (lineNumber + 1) * 12; // 12 is font-size
-            text.attr("transform", `translate(0, ${-textBlockHeight / 4})`);
+            const textBlockHeight = (lineNumber + 1) * 12; // 12 is approx font-size
+            const verticalOffset = -(textBlockHeight / 2) + (nodeHeight / 10);
+            text.attr("transform", `translate(0, ${verticalOffset})`);
         });
     }
 
