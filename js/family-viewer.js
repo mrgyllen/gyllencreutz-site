@@ -12,18 +12,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let width = treeContainer.clientWidth - margin.right - margin.left;
     const height = 1200; // Fixed height, can be adjusted
 
+    let svg, g;
     const zoom = d3.zoom().on('zoom', (event) => {
-        // Apply the zoom transform to the main <g> element.
-        // The static margin offset on containerG will be preserved.
-        g.attr('transform', event.transform);
+        if (g) g.attr('transform', event.transform);
     });
-
-    const svg = d3.select(treeContainer).append('svg')
-        .attr('width', '100%')
-        .call(zoom);
-
-    const g = svg.append('g')
-        .attr('transform', `translate(${margin.left},${margin.top})`);
 
     const nodeWidth = 180;
     const nodeHeight = 60;
@@ -33,10 +25,35 @@ document.addEventListener('DOMContentLoaded', function() {
     let root;
     let allNodes = [];
     const duration = 250;
-    let initialTransform; // Will be set after the first layout
     let currentHeight = height; // To store the dynamic height for centering
+    let originalData = null;
 
     d3.json('data/family.json').then(treeData => {
+        originalData = treeData;
+        initializeVisualization(originalData);
+
+        // Listeners that only need to be attached once
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest('#search-container')) {
+                autocompleteResults.innerHTML = '';
+            }
+        });
+    }).catch(error => console.error('Error loading family.json:', error));
+
+    // Setup listeners that are independent of the data loading
+    resetViewBtn.addEventListener('click', resetTree);
+
+    function initializeVisualization(treeData) {
+        // Clear any previous visualization
+        treeContainer.innerHTML = '';
+
+        svg = d3.select(treeContainer).append('svg')
+            .attr('width', '100%')
+            .call(zoom);
+
+        g = svg.append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
         root = d3.hierarchy(treeData, d => d.children);
         root.x0 = height / 2;
         root.y0 = 0;
@@ -54,25 +71,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (event.target.closest('.node') || event.target.closest('button')) return;
             sidebar.classList.remove('open');
         });
-
-        document.addEventListener('click', (event) => {
-            if (!event.target.closest('#search-container')) {
-                autocompleteResults.innerHTML = '';
-            }
-        });
-
-        resetViewBtn.addEventListener('click', () => {
-            if (initialTransform) {
-                svg.transition().duration(750).call(zoom.transform, initialTransform);
-            }
-        });
-
-    }).catch(error => console.error('Error loading family.json:', error));
+    }
 
     function collapse(d) {
         if (d.children) {
             d._children = d.children;
-            d._children.forEach(collapse);
+            d._children.forEach(collapse); // Restore recursive call
             d.children = null;
         }
     }
@@ -118,8 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             svg.call(zoom.transform, t);
 
-            // Save this as the transform for the reset button.
-            initialTransform = t;
+
         }
 
         // 1. NODES
@@ -149,16 +152,37 @@ document.addEventListener('DOMContentLoaded', function() {
             .attr('rx', 10)
             .style('fill', d => d.depth % 2 === 0 ? '#f1f5f9' : '#e2e8f0');
 
-        nodeEnter.append('text')
+        // Create the main text element.
+        const text = nodeEnter.append('text')
+            .attr('class', 'node-name node-text-base') // Shared class for easy selection
             .attr('dy', '0.31em')
             .attr('x', 0)
-            .attr('text-anchor', 'middle')
-            .text(d => d.data.name.split('\n')[0].split(',')[0])
-            .call(wrapText, nodeWidth - 20)
-            .clone(true).lower()
+            .attr('text-anchor', 'middle');
+
+        // Clone it for the stroke, and add a specific class for styling.
+        text.clone(true).lower()
+            .attr('class', 'node-name-stroke node-text-base')
             .attr('stroke-linejoin', 'round')
             .attr('stroke-width', 3)
             .attr('stroke', 'white');
+
+        // Now, wrap both the original and the clone.
+        nodeEnter.selectAll('.node-text-base').call(wrapText, nodeWidth - 20);
+
+        const indicator = nodeEnter.append('g')
+            .attr('class', 'expand-indicator')
+            .attr('transform', `translate(${nodeWidth / 2}, 0)`);
+
+        indicator.append('circle')
+            .attr('r', 8)
+            .style('fill', 'var(--primary-color)');
+
+        indicator.append('text')
+            .attr('text-anchor', 'middle')
+            .attr('dy', '0.35em')
+            .style('fill', 'white')
+            .style('font-size', '12px')
+            .style('font-weight', 'bold');
 
         const nodeUpdate = nodeEnter.merge(nodeSelection);
 
@@ -168,13 +192,22 @@ document.addEventListener('DOMContentLoaded', function() {
         nodeUpdate.select('rect.node-rect')
             .attr('width', nodeWidth)
             .attr('height', nodeHeight)
-            .style('stroke', d => d._children ? 'var(--primary-color)' : '#94a3b8');
+            .style('stroke', d => d.children || d._children ? 'var(--primary-color)' : '#94a3b8');
 
-        nodeUpdate.selectAll('text').each(function(d) {
-            d3.select(this)
-                .text(d.data.name.split('\n')[0].split(',')[0])
-                .call(wrapText, nodeWidth - 20);
-        });
+        const indicatorUpdate = nodeUpdate.select('g.expand-indicator');
+
+        indicatorUpdate.style('display', d => d.children || d._children ? null : 'none');
+
+        indicatorUpdate.select('circle')
+            .style('fill', d => d._children ? 'var(--primary-color)' : '#fff')
+            .style('stroke', 'var(--primary-color)');
+
+        indicatorUpdate.select('text')
+            .text(d => d._children ? '+' : '-')
+            .style('fill', d => d._children ? 'white' : 'var(--primary-color)');
+
+        // On update, re-wrap both the text and its stroke to ensure they stay in sync.
+        nodeUpdate.selectAll('.node-text-base').call(wrapText, nodeWidth - 20);
 
         const nodeExit = nodeSelection.exit().transition().duration(duration)
             .attr('transform', `translate(${source.y},${source.x})`)
@@ -306,6 +339,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }, duration);
     }
 
+    function resetTree() {
+        if (originalData) {
+            initializeVisualization(originalData);
+        }
+    }
+
     function centerOnNode(node, animated = true) {
         // The container <g> is already translated by the margin.
         // This transform centers the node within the drawing area.
@@ -317,18 +356,23 @@ document.addEventListener('DOMContentLoaded', function() {
         transition.call(zoom.transform, t);
     }
 
-    function wrapText(text, width) {
-        text.each(function() {
-            let text = d3.select(this),
-                words = text.text().split(/\s+/).reverse(),
-                word,
-                line = [],
-                lineNumber = 0,
-                lineHeight = 1.1, // ems
-                y = text.attr("y"),
-                dy = parseFloat(text.attr("dy")),
-                tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
-            
+    function wrapText(selection, width) {
+        selection.each(function(d) { // Use the data object 'd' passed by D3
+            const text = d3.select(this);
+            // Always source the text from the data object 'd'
+            const name = d.data.name.split('\n')[0].split(',')[0];
+            const words = name.split(/\s+/).reverse();
+            let word;
+            let line = [];
+            let lineNumber = 0;
+            const lineHeight = 1.1; // ems
+            const y = text.attr("y");
+            const dy = parseFloat(text.attr("dy"));
+
+            // This is the critical part: always clear existing tspans before re-wrapping.
+            text.text(null);
+            let tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+
             while (word = words.pop()) {
                 line.push(word);
                 tspan.text(line.join(" "));
@@ -347,11 +391,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Responsive resize
     window.addEventListener('resize', () => {
-        width = treeContainer.clientWidth - margin.left - margin.right;
-        if (root) {
-            update(root);
-            // Recenter on the root node, but without animation.
-            centerOnNode(root, false);
+        if (originalData) {
+            width = treeContainer.clientWidth - margin.right - margin.left;
+            initializeVisualization(originalData);
         }
     });
 });
