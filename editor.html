@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Data Editor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-slate-50 font-serif text-slate-800">
+
+    <div class="container mx-auto p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold" style="font-family: 'Cormorant Garamond', serif;">Family Data Editor</h1>
+            <p class="text-lg text-slate-600 mt-2">Load, edit, and save the family data file.</p>
+        </header>
+
+        <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
+            <div class="mb-6">
+                <label for="file-input" class="block text-sm font-medium text-slate-700">1. Load `family.json` file</label>
+                <input type="file" id="file-input" accept=".json" class="mt-1 block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"/>
+            </div>
+
+            <div id="editor-table-container" class="mb-6">
+                <!-- The table will be rendered here by JavaScript -->
+                <p class="text-slate-500 italic">Please load a file to see the data table.</p>
+            </div>
+
+            <div>
+                <button id="save-button" class="w-full bg-primary-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-primary-700 disabled:bg-slate-300 disabled:cursor-not-allowed" disabled>2. Save & Download Updated `family.json`</button>
+            </div>
+        </div>
+
+        <footer class="text-center mt-8 text-sm text-slate-500">
+            <p>To see your changes, replace the old `family.json` file in the `data` directory with your newly downloaded file, then refresh the <a href="/" class="text-primary-600 hover:underline">main family tree page</a>.</p>
+        </footer>
+    </div>
+
+    <script src="js/editor.js?v=2"></script>
+</body>
+</html>
